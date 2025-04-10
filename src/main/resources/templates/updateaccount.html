@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cập nhật tài khoản</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <!-- Custom CSS -->
+  <style>
+    :root {
+      --primary-color: #abd0ec;
+      --primary-hover: #3e7ca6;
+      --danger-color: #e74c3c;
+      --danger-hover: #c0392b;
+      --success-color: #2ecc71;
+      --success-hover: #27ae60;
+      --warning-color: #f39c12;
+      --warning-hover: #d35400;
+      --dark-color: #23c1d6;
+      --light-color: #ecf0f1;
+      --border-color: #dfe6e9;
+      --text-color: #2d3436;
+      --text-light: #636e72;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f7fa;
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 30px;
+      max-width: 800px;
+    }
+
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      border-radius: 12px 12px 0 0 !important;
+      background-color: var(--dark-color) !important;
+      border-bottom: none;
+    }
+
+    .readonly-input {
+      background-color: #f0f0f0;
+      cursor: not-allowed;
+    }
+
+    .account-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    .btn-danger {
+      background-color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+
+    .btn-danger:hover {
+      background-color: var(--danger-hover);
+      border-color: var(--danger-hover);
+    }
+
+    .btn-warning {
+      background-color: var(--warning-color);
+      border-color: var(--warning-color);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background-color: var(--warning-hover);
+      border-color: var(--warning-hover);
+      color: white;
+    }
+
+    .btn-success {
+      background-color: var(--success-color);
+      border-color: var(--success-color);
+    }
+
+    .btn-success:hover {
+      background-color: var(--success-hover);
+      border-color: var(--success-hover);
+    }
+
+    .modal-header {
+      background-color: var(--dark-color) !important;
+      color: white;
+    }
+
+    .alert-error {
+      background-color: var(--primary-color);
+      color: #02a7ee;
+      border-color: var(--primary-hover)
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+
+      .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .d-flex.justify-content-between button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container py-4">
+  <div id="errorAlert" class="alert alert-error alert-dismissible fade show" style="display: none;">
+    <span id="errorMessage"></span>
+    <button type="button" class="btn-close" onclick="document.getElementById('errorAlert').style.display = 'none'"></button>
+  </div>
+
+  <div class="card shadow">
+    <div class="card-header">
+      <h2 class="mb-0"><i class="fas fa-user-edit me-2"></i>Cập nhật tài khoản</h2>
+    </div>
+
+    <div class="card-body">
+      <form id="updateForm">
+        <div class="mb-3">
+          <label for="username" class="form-label">Username:</label>
+          <input type="text" id="username" class="form-control readonly-input" readonly>
+        </div>
+
+        <div class="mb-3">
+          <label for="employeeName" class="form-label">Tên nhân viên:</label>
+          <input type="text" id="employeeName" class="form-control">
+        </div>
+
+        <div class="mb-3">
+          <label for="email" class="form-label">Email:</label>
+          <input type="email" id="email" class="form-control readonly-input" readonly>
+        </div>
+
+        <div class="mb-3">
+          <label for="department" class="form-label">Đơn vị:</label>
+          <select id="department" class="form-select"></select>
+        </div>
+
+        <div class="mb-3">
+          <label for="role" class="form-label">Quyền:</label>
+          <select id="role" class="form-select"></select>
+        </div>
+
+        <div class="mb-3 form-check">
+          <div class="account-status">
+            <input type="checkbox" id="active" class="form-check-input">
+            <label class="form-check-label" for="active">Tài khoản hoạt động</label>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <button type="button" id="saveBtn" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>Lưu
+          </button>
+          <button type="button" id="resetBtn" class="btn btn-warning">
+            <i class="fas fa-key me-2"></i>Đặt lại mật khẩu
+          </button>
+          <button type="button" onclick="window.location.href='/users'" class="btn btn-danger">
+            <i class="fas fa-times me-2"></i>Hủy
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal đặt lại mật khẩu -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-key me-2"></i>Đặt lại mật khẩu</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Nhập mật khẩu mới cho tài khoản:</p>
+        <input type="password" id="newPassword" class="form-control" placeholder="Mật khẩu mới">
+        <div class="mt-2 text-muted small">
+          <i class="fas fa-info-circle me-1"></i>Mật khẩu phải có ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường và ký tự đặc biệt
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Hủy
+        </button>
+        <button type="button" id="confirmResetBtn" class="btn btn-primary">
+          <i class="fas fa-check me-1"></i>Xác nhận
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS Bundle với Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  const urlParts = window.location.pathname.split('/');
+  const username = urlParts[urlParts.length - 1];
+  let currentUserData = null;
+  let passwordModal = null;
+  let currentUserRole = 'UNKNOWN';
+
+  function showError(message) {
+    const errorAlert = document.getElementById('errorAlert');
+    const errorMessage = document.getElementById('errorMessage');
+    errorMessage.textContent = message;
+    errorAlert.style.display = 'block';
+    setTimeout(() => errorAlert.style.display = 'none', 5000);
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+
+    try {
+      const roleResponse = await fetch('/api/v1/users/getUserRole');
+      if (roleResponse.ok) {
+        const roleResult = await roleResponse.json();
+        currentUserRole = roleResult.data || 'UNKNOWN';
+      }
+    } catch (e) {
+      console.warn('Không thể lấy vai trò người dùng');
+    }
+
+    console.log("Current user role:", currentUserRole);
+
+    await fetchUserData();
+    await fetchDepartments(currentUserRole);
+    await fetchRoles(currentUserRole);
+
+    document.getElementById('saveBtn').addEventListener('click', updateUser);
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('newPassword').value = '';
+      passwordModal.show();
+    });
+    document.getElementById('confirmResetBtn').addEventListener('click', resetPassword);
+
+    // Disable fields based on role
+    if (currentUserRole === 'ADMIN') {
+      // Admin không thể sửa username, email, role
+      document.getElementById('username').readOnly = true;
+      document.getElementById('email').readOnly = true;
+      document.getElementById('role').disabled = true;
+
+      document.getElementById('username').title = 'Admins cannot edit username';
+      document.getElementById('email').title = 'Admins cannot edit email';
+      document.getElementById('role').title = 'Admins cannot modify roles';
+
+    } else if (currentUserRole === 'SUPERVISOR') {
+      // Supervisor không thể sửa username, email, department
+      document.getElementById('username').readOnly = true;
+      document.getElementById('email').readOnly = true;
+      document.getElementById('department').disabled = true;
+
+      document.getElementById('username').title = 'Supervisors cannot edit username';
+      document.getElementById('email').title = 'Supervisors cannot edit email';
+      document.getElementById('department').title = 'Supervisors cannot change department';
+    }
+  });
+
+  async function fetchUserData() {
+    try {
+      const response = await fetch(`/api/v1/users/getUserByUsername/${username}`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      if (result) {
+        currentUserData = result;
+        populateUserForm(result);
+      } else {
+        console.error('No user data found');
+        showError('Không tìm thấy thông tin người dùng');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      showError('Không thể tải thông tin người dùng');
+    }
+  }
+
+  function populateUserForm(user) {
+    document.getElementById('username').value = user.username || '';
+    document.getElementById('employeeName').value = user.employeeName || 'Unknown';
+    document.getElementById('email').value = user.email || '';
+    document.getElementById('active').checked = user.status === 'Active';
+
+    setTimeout(() => {
+      if (user.roleName) document.getElementById('role').value = user.roleName;
+      if (user.departmentId) document.getElementById('department').value = user.departmentId;
+    }, 200);
+  }
+
+  async function fetchDepartments(currentUserRole) {
+    try {
+      const response = await fetch('/api/v1/departments');
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      let departments = Array.isArray(result.data) ? result.data : result.retMsg || result || [];
+
+      if (typeof departments === 'string') {
+        const matches = departments.match(/Department\(departmentId=(\d+), departmentName=([^,]+)/g);
+        departments = matches.map(dept => {
+          const parts = dept.match(/departmentId=(\d+), departmentName=([^,]+)/);
+          return {
+            departmentId: parts[1],
+            departmentName: parts[2].trim()
+          };
+        });
+      }
+
+      const uniqueDepartments = departments.filter((dept, index, self) =>
+              index === self.findIndex(d => (d.departmentName || d.name).toLowerCase() === (dept.departmentName || dept.name).toLowerCase())
+      );
+
+      uniqueDepartments.sort((a, b) =>
+              (a.departmentName || a.name || '').localeCompare(b.departmentName || b.name || '')
+      );
+
+      const departmentSelect = document.getElementById('department');
+      if (!departmentSelect) return;
+      departmentSelect.innerHTML = '<option value="">Chọn đơn vị</option>';
+      uniqueDepartments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept.departmentId || dept.id;
+        option.textContent = dept.departmentName || dept.name || 'Unknown';
+        departmentSelect.appendChild(option);
+      });
+
+      if (currentUserData?.departmentId) {
+        departmentSelect.value = currentUserData.departmentId;
+      }
+
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      showError('Không thể tải danh sách đơn vị');
+    }
+  }
+
+  async function fetchRoles(currentUserRole) {
+    try {
+      const response = await fetch('/api/v1/roles/all');
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      let roles = Array.isArray(result.data) ? result.data : result.retMsg || result || [];
+
+      if (typeof roles === 'string') {
+        const matches = roles.match(/Role\(roleName=([^\)]+)/g);
+        roles = matches.map(role => {
+          const roleName = role.match(/roleName=([^\)]+)/)[1];
+          return { roleName };
+        });
+      }
+
+      const roleSelect = document.getElementById('role');
+      if (!roleSelect) return;
+      roleSelect.innerHTML = '<option value="">Chọn quyền</option>';
+      roles.forEach(role => {
+        if (currentUserRole === 'SUPERVISOR' && role.roleName === 'ADMIN') return;
+        const option = document.createElement('option');
+        option.value = role.roleName || role.name;
+        option.textContent = role.roleName || role.name || 'Unknown';
+        roleSelect.appendChild(option);
+      });
+
+      if (currentUserData?.roleName) {
+        roleSelect.value = currentUserData.roleName;
+      }
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      showError('Không thể tải danh sách quyền');
+    }
+  }
+
+  async function updateUser() {
+    const userData = {
+      username: document.getElementById('username').value,
+      employeeName: document.getElementById('employeeName').value,
+      email: document.getElementById('email').value,
+      departmentId: document.getElementById('department').value,
+      roleName: document.getElementById('role').value,
+      status: document.getElementById('active').checked ? 'Active' : 'Inactive'
+    };
+    try {
+      const response = await fetch(`/api/v1/users/update/${username}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      const result = await response.json();
+      showError(result.message || 'Cập nhật thành công');
+      setTimeout(() => window.location.href = '/users', 1500);
+    } catch (error) {
+      console.error('Error updating account:', error);
+      showError('Lỗi khi cập nhật tài khoản');
+    }
+  }
+
+  async function resetPassword() {
+    const newPassword = document.getElementById('newPassword').value;
+    if (!isValidPassword(newPassword)) {
+      showError('Mật khẩu phải có ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường và ký tự đặc biệt');
+      return;
+    }
+    try {
+      const response = await fetch(`/api/v1/users/change-password/${username}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword })
+      });
+      const result = await response.json();
+      if (result.status === 'Success') {
+        showError('Đặt lại mật khẩu thành công');
+        passwordModal.hide();
+      } else {
+        showError(result.message || 'Có lỗi xảy ra');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      showError('Lỗi khi đặt lại mật khẩu');
+    }
+  }
+
+  function isValidPassword(password) {
+    return password.length >= 10 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[^a-zA-Z0-9]/.test(password);
+  }
+</script>
+</body>
+</html>
