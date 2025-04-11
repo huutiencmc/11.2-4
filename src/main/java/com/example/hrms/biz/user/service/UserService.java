@@ -5,7 +5,6 @@ import com.example.hrms.biz.user.model.criteria.UserCriteria;
 import com.example.hrms.biz.user.model.dto.UserDTO;
 import com.example.hrms.enumation.RoleEnum;
 import com.example.hrms.biz.user.repository.UserMapper;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,18 +21,10 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-    private HttpSession session;
 
-    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder, HttpSession session) {
+    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
-        this.session = session;
-    }
-
-
-    public boolean checkUsernamePassword(String username, String rawPassword) {
-        String encodedPassword = userMapper.getPasswordByUsername(username);
-        return encodedPassword != null && passwordEncoder.matches(rawPassword, encodedPassword);
     }
 
     public User getUserByUsername(String username) {
@@ -42,13 +33,6 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userMapper.getAllUsers();
-    }
-
-    public List<User> searchUsers(UserCriteria criteria) {
-        return userMapper.searchUsers(
-                criteria.getDepartmentIds(),
-                criteria.getRoles()
-        );
     }
 
     @Transactional
@@ -60,12 +44,8 @@ public class UserService {
 
     @Transactional
     public int updateUser(User user) {
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
         return userMapper.updateUser(user);
     }
-
     @Transactional
     public int deleteUser(String username) {
         return userMapper.deleteUser(username);
@@ -117,22 +97,12 @@ public class UserService {
         resp.setDepartmentId(user.getDepartmentId());
         resp.setDepartmentName(user.getDepartmentName());
         resp.setRoleName(user.getRoleName());
-        resp.setIsSupervisor(user.isSupervisor());
         resp.setStatus(user.getStatus());
         return resp;
     }
 
-    public boolean isValidPassword(String password) {
-        return password != null &&
-                password.length() >= 10 &&
-                !password.equals(password.toLowerCase()) &&
-                !password.equals(password.toUpperCase()) &&
-                password.matches(".*[^a-zA-Z0-9].*");
-    }
+
     public int checkUsernameExists(String username) {
         return userMapper.checkUsernameExists(username);
-    }
-    public HttpSession getSession() {
-        return session;
     }
 }

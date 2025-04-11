@@ -46,12 +46,12 @@ public class UserRestController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final HttpSession session ;
-    public UserRestController(UserService userService, EmailService emailService, PasswordEncoder passwordEncoder,HttpSession session) {
+
+    public UserRestController(UserService userService, EmailService emailService, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
-        this.session = session;
+
     }
 
     @Operation(summary = "List users")
@@ -156,18 +156,40 @@ throw new InvalidPasswordException("Invalid password.");}
             }
         }
         existingUser.setEmployeeName(userReq.getEmployeeName());
-        if (userReq.getPassword() != null && !userReq.getPassword().isEmpty()) {
-            String rawPassword = userReq.getPassword(); // Lưu trữ mật khẩu gốc
-            existingUser.setPassword(passwordEncoder.encode(rawPassword)); // Mã hóa mật khẩu
-            // Gửi email thông báo mật khẩu mới không mã hóa
-            emailService.sendEmail(existingUser.getEmail(), "Password Update", "Your new password is: " + rawPassword);
-        }
+
         existingUser.setDepartmentId(userReq.getDepartmentId());
         existingUser.setRoleName(userReq.getRoleName());
         existingUser.setSupervisor(userReq.isSupervisor());
         existingUser.setStatus(userReq.getStatus());
         userService.updateUser(existingUser);
         return new Result("Success", "Account updated successfully.");
+    }
+    @PutMapping("/change-password/{username}")
+    public Result changePassword(@PathVariable String username, @RequestBody UserDTO.UpdateReq userReq) {
+        User existingUser = userService.getUserByUsername(username);
+        if (existingUser == null) {
+            return new Result("Error", "User not found.");
+        }
+
+        String rawPassword = userReq.getPassword();
+        if (rawPassword == null || rawPassword.isEmpty()) {
+            return new Result("Error", "Password must not be empty.");
+        }
+
+        if (!isValidPassword(rawPassword)) {
+            return new Result("Error", "Password must be at least 10 characters long and include uppercase, lowercase, and a special character.");
+        }
+
+        // Mã hóa và cập nhật mật khẩu
+        String encodedPassword = passwordEncoder.encode(rawPassword); // mã hóa
+        existingUser.setPassword(encodedPassword); // set mật khẩu đã mã hóa
+
+        userService.updateUser(existingUser); // cập nhật vào DB
+
+        // Gửi mật khẩu chưa mã hóa qua email
+        emailService.sendEmail(existingUser.getEmail(), "Password Update", "Your new password is: " + rawPassword);
+
+        return new Result("Success", "Password changed successfully.");
     }
 
     @Operation(summary = "Delete user")
@@ -232,23 +254,6 @@ throw new InvalidPasswordException("Invalid password.");}
         return new Result("Success", count > 0 ? "Username is already taken" : "Username is available");
     }
 
-    @PutMapping("/change-password/{username}")
-    public Result changePassword(@PathVariable String username, @RequestBody UserDTO.ChangePasswordReq req) {
-        User user = userService.getUserByUsername(username);
-        if (user == null) {
-            return new Result("Error", "User not found.");
-        }
-        if (!isValidPassword(req.getNewPassword())) {
-            return new Result("Error", "Password must be at least 10 characters long and include uppercase, lowercase, and a special character.");
-        }
-        String rawPassword = req.getNewPassword(); // Lưu trữ mật khẩu gốc
-        user.setPassword(passwordEncoder.encode(rawPassword)); // Mã hóa mật khẩu
-        userService.updateUser(user);
-        // Gửi email thông báo mật khẩu mới không mã hóa
-        emailService.sendEmail(user.getEmail(), "Password Update", "Your new password is: " + rawPassword);
-        return new Result("Success", "Password changed successfully.");
-    }
-
     @Operation(summary = "Change password (current user)")
     @PutMapping("/change-password")
     public Result changePassword(@RequestBody UserDTO.ChangePasswordReq request) {
@@ -284,7 +289,4 @@ throw new InvalidPasswordException("Invalid password.");}
         return new Result("Success", "Logged out successfully.");
     }
 
-    public HttpSession getSession() {
-        return session;
-    }
 }

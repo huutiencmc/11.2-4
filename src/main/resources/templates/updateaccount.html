@@ -437,7 +437,7 @@
       const response = await fetch(`/api/v1/users/change-password/${username}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword })
+        body: JSON.stringify({ password: newPassword }) // ✅ sửa ở đây
       });
       const result = await response.json();
       if (result.status === 'Success') {
@@ -451,6 +451,7 @@
       showError('Lỗi khi đặt lại mật khẩu');
     }
   }
+
 
   function isValidPassword(password) {
     return password.length >= 10 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[^a-zA-Z0-9]/.test(password);
