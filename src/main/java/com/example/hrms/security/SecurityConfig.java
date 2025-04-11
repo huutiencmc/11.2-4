@@ -31,13 +31,13 @@ public class SecurityConfig {
                                 "/bookings/**", "/api/v1/bookings/**",
                                 "/departments/**", "/roles/**", "/api/v1/roles/**",
                                 "/requests/**", "/api/v1/requests/**",
-                                "/users/**", "/api/v1/users/login", "/api/v1/users/all", "/api/v1/users/check", "/api/v1/users/getUserByUsername/**",
+                                 "/api/v1/users/login", "/api/v1/users/all", "/api/v1/users/check", "/api/v1/users/getUserByUsername/**",
                                 "/css/**", "/js/**", "/images/**", "/fonts/**",
                                 "/users/login", "/users/home",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/"
                         ).permitAll()
                         .requestMatchers("/api/v1/meeting-room/**", "/meeting-room/**").hasRole("EMPLOYEE")
-                        .requestMatchers("/api/v1/users/create/**").hasAnyAuthority("ADMIN", "SUPERVISOR")
+                        .requestMatchers("/api/v1/users/create/**","/users").hasAnyAuthority("ADMIN", "SUPERVISOR")
                         .requestMatchers("/api/v1/users/update/**").hasAnyAuthority("ADMIN", "SUPERVISOR")
                         .requestMatchers("/api/v1/users/delete/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
@@ -45,7 +45,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .formLogin(AbstractHttpConfigurer::disable); // disable luôn form login mặc định
 
-        // ❌ KHÔNG .httpBasic(withDefaults()) ở đây
+      
 
         return http.build();
     }

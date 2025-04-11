@@ -5,6 +5,7 @@ import com.example.hrms.biz.user.model.criteria.UserCriteria;
 import com.example.hrms.biz.user.model.dto.UserDTO;
 import com.example.hrms.enumation.RoleEnum;
 import com.example.hrms.biz.user.repository.UserMapper;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,14 +22,14 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private HttpSession session;
 
-    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder, HttpSession session) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.session = session;
     }
-    public PasswordEncoder getPasswordEncoder() {
-        return this.passwordEncoder;
-    }
+
 
     public boolean checkUsernamePassword(String username, String rawPassword) {
         String encodedPassword = userMapper.getPasswordByUsername(username);
@@ -59,7 +60,6 @@ public class UserService {
 
     @Transactional
     public int updateUser(User user) {
-        // Nếu có thay đổi password thì mã hóa
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
@@ -131,5 +131,8 @@ public class UserService {
     }
     public int checkUsernameExists(String username) {
         return userMapper.checkUsernameExists(username);
+    }
+    public HttpSession getSession() {
+        return session;
     }
 }

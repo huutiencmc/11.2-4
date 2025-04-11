@@ -12,8 +12,6 @@ import com.example.hrms.enumation.RoleEnum;
 import com.example.hrms.exception.InvalidPasswordException;
 import com.example.hrms.security.SecurityUtils;
 import com.example.hrms.utils.RequestUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -29,7 +27,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -45,13 +42,16 @@ import java.util.Map;
 @RequestMapping("/api/v1/users")
 public class UserRestController {
 
+
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    public UserRestController(UserService userService, EmailService emailService, PasswordEncoder passwordEncoder) {
+    private final HttpSession session ;
+    public UserRestController(UserService userService, EmailService emailService, PasswordEncoder passwordEncoder,HttpSession session) {
         this.userService = userService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.session = session;
     }
 
     @Operation(summary = "List users")
@@ -69,7 +69,6 @@ public class UserRestController {
         return response;
     }
 
-
     @Operation(summary = "Get all users")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
@@ -86,16 +85,20 @@ public class UserRestController {
             @ApiResponse(responseCode = "400", description = "Invalid request"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
+
     @PostMapping("/login")
     public ResultData<Map<String, String>> checkLogin(@RequestBody UserDTO.Req loginRequest, HttpSession session) {
-        User user = userService.getUserByUsername(loginRequest.getUsername());
-        if (user == null || !user.getUsername().equals(loginRequest.getUsername())) {
-            throw new UsernameNotFoundException("Username not found.");
-        }
-        boolean passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword());
-        if (!passwordMatches) {
-            throw new InvalidPasswordException("Invalid password.");
-        }
+ User user = userService.getUserByUsername(loginRequest.getUsername());
+ if (user == null || !user.getUsername().equals(loginRequest.getUsername())) {
+ throw new UsernameNotFoundException("Username not found.");
+ }
+ if (!"Active".equals(user.getStatus())) {
+ return new ResultData<>("Error", "Account is inactive.", null);
+}
+ boolean passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword());
+ if (!passwordMatches) {
+throw new InvalidPasswordException("Invalid password.");}
+
         RequestUtils.setSessionAttr(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 SecurityContextHolder.getContext());
@@ -103,12 +106,10 @@ public class UserRestController {
                 user, null, SecurityUtils.getAuthorities(user.getRoleName()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         RequestUtils.session(false).setMaxInactiveInterval(1800);
-
         // Tạo response data chứa username và role
         Map<String, String> responseData = new HashMap<>();
         responseData.put("username", user.getUsername());
         responseData.put("role", user.getRoleName().name());
-
         return new ResultData<>("Success", "Login successful.", responseData);
     }
 
@@ -125,21 +126,16 @@ public class UserRestController {
     @PostMapping("/check-login")
     public Result checkLogin(@RequestBody UserDTO.Req loginRequest) {
         User user = userService.getUserByUsername(loginRequest.getUsername());
-
         if (user == null) {
             return new Result("Error", "Username not found.");
         }
-
         boolean passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword());
         if (!passwordMatches) {
             return new Result("Error", "Invalid password.");
         }
-        System.out.println("Raw password: " + loginRequest.getPassword());
-        System.out.println("Encoded password from DB: " + user.getPassword());
-        System.out.println("Password match: " + passwordEncoder.matches(loginRequest.getPassword(), user.getPassword()));
-
         return new Result("Success", "Login successful.");
     }
+
     @PutMapping("/update/{username}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPERVISOR')")
     public Result updateAccount(@PathVariable String username, @RequestBody UserDTO.UpdateReq userReq) {
@@ -147,23 +143,18 @@ public class UserRestController {
         if (existingUser == null) {
             return new Result("Error", "User not found.");
         }
-
-        if (!existingUser.getUsername().equals(userReq.getUsername()) ||
-                !existingUser.getEmail().equals(userReq.getEmail())) {
+        if (!existingUser.getUsername().equals(userReq.getUsername()) || !existingUser.getEmail().equals(userReq.getEmail())) {
             return new Result("Error", "Username and Email cannot be updated.");
         }
-
         RoleEnum currentUserRole = userService.getCurrentUserRole();
         if (RoleEnum.SUPERVISOR.equals(currentUserRole)) {
-            if (userReq.getDepartmentId() != null &&
-                    !userReq.getDepartmentId().equals(existingUser.getDepartmentId())) {
+            if (userReq.getDepartmentId() != null && !userReq.getDepartmentId().equals(existingUser.getDepartmentId())) {
                 return new Result("Error", "Supervisors are not allowed to update Department.");
             }
             if (RoleEnum.ADMIN.equals(userReq.getRoleName())) {
                 return new Result("Error", "Supervisors are not allowed to assign Admin role.");
             }
         }
-
         existingUser.setEmployeeName(userReq.getEmployeeName());
         if (userReq.getPassword() != null && !userReq.getPassword().isEmpty()) {
             String rawPassword = userReq.getPassword(); // Lưu trữ mật khẩu gốc
@@ -175,7 +166,6 @@ public class UserRestController {
         existingUser.setRoleName(userReq.getRoleName());
         existingUser.setSupervisor(userReq.isSupervisor());
         existingUser.setStatus(userReq.getStatus());
-
         userService.updateUser(existingUser);
         return new Result("Success", "Account updated successfully.");
     }
@@ -204,30 +194,24 @@ public class UserRestController {
     @PostMapping("/create")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'SUPERVISOR')")
     public Result createAccount(@RequestBody UserDTO.Req userReq) {
-        if (userService.checkUsernameExists(userReq.getUsername()) > 0 ||
-                userService.isUsernameDuplicated(userReq.getUsername())) {
+        if (userService.checkUsernameExists(userReq.getUsername()) > 0 || userService.isUsernameDuplicated(userReq.getUsername())) {
             return new Result("Conflict", "Username already exists.");
         }
-
         if (userReq.getUsername().length() > 50) {
             return new Result("Invalid request", "Username must be less than 50 characters.");
         }
-
         if (!isValidPassword(userReq.getPassword())) {
-            return new Result("Invalid request",
-                    "Password must be at least 10 characters long, including uppercase, lowercase, and a special character.");
+            return new Result("Invalid request", "Password must be at least 10 characters long, including uppercase, lowercase, and a special character.");
         }
-
         User user = new User();
         user.setUsername(userReq.getUsername());
         user.setEmployeeName(userReq.getEmployeeName());
-        user.setEmail(userReq.getUsername() + "@cmcglobal.com.vn");
+        user.setEmail(userReq.getUsername() + "@cmcglobal.vn");
         user.setPassword(userReq.getPassword()); // ✅ Để service lo mã hóa
         user.setDepartmentId(userReq.getDepartmentId());
         user.setRoleName(userReq.getRoleName());
         user.setSupervisor(userReq.isSupervisor());
-        user.setStatus("Active");
-
+        user.setStatus(userReq.getStatus()); // Use the status from the request
         int result = userService.insertUser(user);
         return result > 0 ?
                 new Result("Success", "Account created successfully.") :
@@ -241,6 +225,7 @@ public class UserRestController {
                 password.matches(".*[^a-zA-Z0-9].*");
     }
 
+
     @GetMapping("/check")
     public Result checkUsernameExists(@RequestParam String username) {
         int count = userService.checkUsernameExists(username);
@@ -253,18 +238,14 @@ public class UserRestController {
         if (user == null) {
             return new Result("Error", "User not found.");
         }
-
         if (!isValidPassword(req.getNewPassword())) {
             return new Result("Error", "Password must be at least 10 characters long and include uppercase, lowercase, and a special character.");
         }
-
         String rawPassword = req.getNewPassword(); // Lưu trữ mật khẩu gốc
         user.setPassword(passwordEncoder.encode(rawPassword)); // Mã hóa mật khẩu
         userService.updateUser(user);
-
         // Gửi email thông báo mật khẩu mới không mã hóa
         emailService.sendEmail(user.getEmail(), "Password Update", "Your new password is: " + rawPassword);
-
         return new Result("Success", "Password changed successfully.");
     }
 
@@ -301,5 +282,9 @@ public class UserRestController {
             }
         }
         return new Result("Success", "Logged out successfully.");
+    }
+
+    public HttpSession getSession() {
+        return session;
     }
 }
