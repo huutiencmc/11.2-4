@@ -193,12 +193,7 @@
     .container.py-4 {
       margin-top: 70px;
     }
-    .ftco-navbar-light .navbar-nav > .nav-item > .nav-link,
-    .ftco-navbar-light .navbar-brand,
-    .ftco-navbar-light .navbar-nav > .nav-item.active > a,
-    .ftco-navbar-light .navbar-nav > .nav-item > .nav-link:hover {
-      color: #ffffff;
-    }
+
   </style>
 
 
@@ -293,12 +288,12 @@
   </div>
 
   <!-- Modal đặt lại mật khẩu -->
-  <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+  <div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="passwordModalLabel"><i class="fas fa-key me-2"></i>Đặt lại mật khẩu</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title"><i class="fas fa-key me-2"></i>Đặt lại mật khẩu</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <p>Nhập mật khẩu mới cho tài khoản:</p>
@@ -449,19 +444,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // Khởi tạo modal với Bootstrap 5
     passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
-
-    // Xử lý sự kiện nút Reset Password
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      document.getElementById('newPassword').value = '';
-      passwordModal.show();
-    });
-
-    // Xử lý sự kiện nút Xác nhận
-    document.getElementById('confirmResetBtn').addEventListener('click', async () => {
-      await resetPassword();
-    });
 
     try {
       const roleResponse = await fetch('/api/v1/users/getUserRole');
@@ -654,7 +637,7 @@
       const response = await fetch(`/api/v1/users/change-password/${username}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword })
+        body: JSON.stringify({ password: newPassword }) // ✅ sửa ở đây
       });
       const result = await response.json();
       if (result.status === 'Success') {
@@ -671,8 +654,8 @@
 
 
   function isValidPassword(password) {
-    return password.length >= 10 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[^a-zA-Z0-9]/.test(password);}
-
+    return password.length >= 10 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[^a-zA-Z0-9]/.test(password);
+  }
 </script>
 <script src="/js/jquery.min.js"></script>
 <script src="/js/jquery-migrate-3.0.1.min.js"></script>
@@ -687,6 +670,6 @@
 <script src="/js/jquery.animateNumber.min.js"></script>
 <script src="/js/scrollax.min.js"></script>
 <script src="/js/main.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
